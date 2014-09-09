@@ -152,3 +152,36 @@ utils.escapeString = function(value) {
 utils.toSqlDate = function(date) {
   return date.toUTCString();
 };
+
+/**
+ * generate the returning statement to properly retrieve the geometry
+ * value as text
+ */
+
+utils.buildReturningStatement = function(table, schema, escapeCharacter){
+  var str = '';
+  var definition = _.find(_.values(schema), {tableName: table}).attributes;
+
+  // Add all the columns to be selected
+  for(var column in definition) {
+    var type, escColumn, escTable;
+
+    if (!utils.object.hasOwnProperty(definition, column)) {
+      continue;
+    }
+
+    column = column.replace(/["']/g, "");
+    escColumn = utils.escapeName(column, escapeCharacter);
+    escTable = utils.escapeName(table, escapeCharacter);
+
+    type = (typeof definition[column] === 'string') ? definition[column] : definition[column].type;
+
+    if (type.indexOf('geometry') === 0) {
+      str += 'ST_asEWKT(' + escTable + '.' + escColumn + ') as ' + escColumn + ', ';
+    } else {
+      str += escTable + '.' + escColumn + ', ';
+    }
+  }
+
+  return str.slice(0, -2);
+};

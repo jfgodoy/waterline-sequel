@@ -334,8 +334,13 @@ CriteriaProcessor.prototype.process = function process(parent, value, combinator
         _param = utils.escapeName(self.currentTable, self.escapeCharacter) + '.' + utils.escapeName(parent, self.escapeCharacter);
       }
 
-      self.queryString += _param + ' ';
-      self.prepareCriterion(key, obj[key]);
+      if (key === 'intersects') {
+        self.queryString += 'ST_Intersects(' + _param + '::geometry,' + utils.escapeName(obj[key], '\'') + '::geometry) ';
+      } else{
+        self.queryString += _param + ' ';
+        self.prepareCriterion(key, obj[key]);
+      }
+
       self.queryString += ' AND ';
     });
   }

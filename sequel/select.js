@@ -64,7 +64,12 @@ SelectBuilder.prototype.buildSimpleSelect = function buildSimpleSelect(queryObje
     // but leaving here as a failsafe.
     var schema = self.schema[self.currentTable].attributes[key] || {};
     if(hop(schema, 'collection')) return;
-    selectKeys.push({ table: self.currentTable, key: schema.columnName || key });
+    var type = (typeof schema === 'string') ? schema : schema.type;
+    selectKeys.push({
+      table: self.currentTable,
+      key: schema.columnName || key,
+      isGeometry: type.indexOf('geometry') === 0
+    });
   });
 
   // Add any hasFK strategy joins to the main query
@@ -91,8 +96,9 @@ SelectBuilder.prototype.buildSimpleSelect = function buildSimpleSelect(queryObje
     // If there is an alias, set it in the select (used for hasFK associations)
     if(select.alias) {
       query += utils.escapeName(select.table, self.escapeCharacter) + '.' + utils.escapeName(select.key, self.escapeCharacter) + ' AS ' + self.escapeCharacter + select.alias + '___' + select.key + self.escapeCharacter + ', ';
-    }
-    else {
+    } else if (select.isGeometry) {
+      query += 'ST_asEWKT(' + utils.escapeName(select.table, self.escapeCharacter) + '.' + utils.escapeName(select.key, self.escapeCharacter) + ') as ' + utils.escapeName(select.key, self.escapeCharacter) + ', ';
+    } else {
       query += utils.escapeName(select.table, self.escapeCharacter) + '.' + utils.escapeName(select.key, self.escapeCharacter) + ', ';
     }
 

@@ -115,7 +115,7 @@ Sequel.prototype.create = function create(currentTable, data) {
   var query = 'INSERT INTO ' + utils.escapeName(currentTable, this.escapeCharacter) + ' (' + columnNames + ') values (' + paramValues + ')';
 
   if(this.canReturnValues) {
-    query += ' RETURNING *';
+    query += ' RETURNING ' + utils.buildReturningStatement(currentTable, this.schema, this.escapeCharacter);
   }
 
   return { query: query, values: attributes.values };
@@ -166,7 +166,7 @@ Sequel.prototype.update = function update(currentTable, queryObject, data) {
   values = values.concat(whereObject.values);
 
   if(this.canReturnValues) {
-    query += ' RETURNING *';
+    query += ' RETURNING ' + utils.buildReturningStatement(currentTable, this.schema, this.escapeCharacter);
   }
 
   return {
@@ -195,7 +195,7 @@ Sequel.prototype.destroy = function destroy(currentTable, queryObject) {
   var values = whereObject.values;
 
   if(this.canReturnValues) {
-    query += ' RETURNING *';
+    query += ' RETURNING ' + utils.buildReturningStatement(currentTable, this.schema, this.escapeCharacter);
   }
 
   return {
