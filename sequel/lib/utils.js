@@ -158,12 +158,12 @@ utils.toSqlDate = function(date) {
  * value as text
  */
 
-utils.buildReturningStatement = function(table, schema, escapeCharacter){
+utils.buildReturningStatement = function(table, schema, escapeCharacter, alias){
   var str = '';
   var definition = _.find(_.values(schema), {tableName: table}).attributes;
 
   // Add all the columns to be selected
-  for(var column in definition) {
+  for (var column in definition) {
     var type, escColumn, escTable;
 
     if (!utils.object.hasOwnProperty(definition, column)) {
@@ -172,7 +172,7 @@ utils.buildReturningStatement = function(table, schema, escapeCharacter){
 
     column = column.replace(/["']/g, "");
     escColumn = utils.escapeName(column, escapeCharacter);
-    escTable = utils.escapeName(table, escapeCharacter);
+    escTable = utils.escapeName(alias ? alias : table, escapeCharacter);
 
     type = (typeof definition[column] === 'string') ? definition[column] : definition[column].type;
 

@@ -166,7 +166,7 @@ Sequel.prototype.update = function update(currentTable, queryObject, data) {
   values = values.concat(whereObject.values);
 
   if(this.canReturnValues) {
-    query += ' RETURNING ' + utils.buildReturningStatement(currentTable, this.schema, this.escapeCharacter);
+    query += ' RETURNING ' + utils.buildReturningStatement(currentTable, this.schema, this.escapeCharacter, identity);
   }
 
   return {
