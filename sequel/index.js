@@ -32,6 +32,8 @@ var Sequel = module.exports = function(schema, options) {
 
   // Flag whether the database is case-sensitive or not.
   // Default is true.
+  // NOTE: This does not mean that your queries will be case sensitive. It just flags if the queries
+  // should use lower or regex logic for querying.
   this.caseSensitive = options && utils.object.hasOwnProperty(options, 'caseSensitive') ? options.caseSensitive : true;
 
   // Set the escape character, default is "
@@ -47,6 +49,20 @@ var Sequel = module.exports = function(schema, options) {
   // DELETE `tableName` FROM `tableName` as `otherTableName` WHERE `otherTableName`.`foo` = "bar"
   // MySQL and Oracle require this, but it doesn't work in Postgresql.
   this.declareDeleteAlias = options && utils.object.hasOwnProperty(options, 'declareDeleteAlias') ? options.declareDeleteAlias : true;
+
+  // Waterline NEXT
+  // These are flags that can be toggled today and expose future features. If any of the following are turned
+  // on the adapter tests will probably not pass. If you toggle these know what you are getting into.
+  var wlNext = options && utils.object.hasOwnProperty(options, 'wlNext') ? options.wlNext : {};
+  this.wlNext = {
+
+    // Case sensitive - false
+    // In the next version of WL queries will be case sensitive by default.
+    // Set this to true to experiement with that feature today.
+    caseSensitive: utils.object.hasOwnProperty(wlNext, 'caseSensitive') ? wlNext.caseSensitive : false
+
+  };
+
 
   this.values = [];
 
@@ -92,10 +108,48 @@ Sequel.prototype.find = function find(currentTable, queryObject) {
 
 };
 
+/**
+ * Build a SQL Count Query using the defined schema.
+ */
+
+Sequel.prototype.count = function count(currentTable, queryObject) {
+
+  // Step 1:
+  // Build out the Count statements
+  // TO-DO: limit this to a certain column, e.g. id, for performance gains
+  this.queries = ['SELECT COUNT(*) FROM ' + currentTable];
+
+  var whereObject;
+  var childQueries;
+  var query;
+  var values;
+
+  /**
+   * Step 2 - Build out the parent query.
+   */
+
+  whereObject = this.simpleWhere(currentTable, queryObject);
+
+  this.queries[0] += ' ' + whereObject.query;
+  this.values[0] = whereObject.values;
+
+  /**
+   * Step 3 - Build out the child query templates.
+   */
+
+  childQueries = this.complexWhere(currentTable, queryObject);
+  this.queries = this.queries.concat(childQueries);
+
+  return {
+    query: this.queries,
+    values: this.values
+  };
+
+};
+
 
 /**
  * Build a SQL Create Query.
- *
  */
 
 Sequel.prototype.create = function create(currentTable, data) {
@@ -123,7 +177,6 @@ Sequel.prototype.create = function create(currentTable, data) {
 
 /**
  * Build a SQL Update Query.
- *
  */
 
 Sequel.prototype.update = function update(currentTable, queryObject, data) {
@@ -178,7 +231,6 @@ Sequel.prototype.update = function update(currentTable, queryObject, data) {
 
 /**
  * Build Delete SQL query.
- *
  */
 
 Sequel.prototype.destroy = function destroy(currentTable, queryObject) {
@@ -213,7 +265,8 @@ Sequel.prototype.select = function select(currentTable, queryObject) {
   var options = {
     escapeCharacter: this.escapeCharacter,
     caseSensitive: this.caseSensitive,
-    cast: this.cast
+    cast: this.cast,
+    wlNext: this.wlNext
   };
 
   return new SelectBuilder(this.schema, currentTable, queryObject, options);
@@ -227,7 +280,8 @@ Sequel.prototype.simpleWhere = function simpleWhere(currentTable, queryObject, o
   var _options = {
     parameterized: this.parameterized,
     caseSensitive: this.caseSensitive,
-    escapeCharacter: this.escapeCharacter
+    escapeCharacter: this.escapeCharacter,
+    wlNext: this.wlNext
   };
 
   var where = new WhereBuilder(this.schema, currentTable, _options);
